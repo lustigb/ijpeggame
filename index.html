@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Simplified Peg Solitaire</title>
+  <title>PegGame</title>
   <style>
   /* Basic CSS for the board and cells */
   .board-container {
@@ -58,6 +58,21 @@
   .cell.active-peg {
     border: 2px solid yellow;
   }
+
+  #leftButton, #rightButton {
+    font-size: 24px; /* Adjust as needed */
+    padding: 15px 30px; /* Adjust as needed */
+    margin-top: 10px; /* Add some space above the buttons */
+    margin-right: 10px; /* Add some space between the buttons */
+    cursor: pointer;
+  }
+
+  #pegCounter {
+    font-size: 30px; /* Adjust as needed */
+    margin-top: 15px; /* Add some space above the text */
+    font-weight: bold; /* Make it bold if you like */
+  }
+
 </style>
 </head>
 <body>
@@ -169,22 +184,7 @@
       pegCount = 0; // Initialize peg count to zero
       updatePegCount();
     }
-    // function initializeBoard() {
-    //   let initialPegs = 0;
-    //   for (let r = 0; r < numRows; r++) {
-    //     for (let c = 0; c < numCols; c++) {
-    //       const isBlankHole = blankHolesSetup.some(hole => hole.row === r && hole.col === c);
-    //       if (isBlankHole) {
-    //         grid[r][c].classList.add('blank-hole');
-    //       } else {
-    //         grid[r][c].classList.add('hole');
-    //         initialPegs++; // Count initial valid holes (assuming they start with pegs)
-    //       }
-    //     }
-    //   }
-    //   pegCount = initialPegs; // Set initial peg count
-    //   updatePegCount();
-    // }
+    
 
     initializeBoard();
 
