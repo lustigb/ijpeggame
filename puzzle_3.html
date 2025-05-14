@@ -136,32 +136,25 @@
       { row: 8, col: 8 }
     ];
 
-    let pegCount = 0; // Initialize peg count
+     let pegCount = 0;
     const pegCountDisplay = document.getElementById('pegCount');
-
     function updatePegCount() {
       pegCountDisplay.textContent = pegCount;
     }
 
-
     const pegCounterDisplay = document.getElementById('pegCounter');
-    const initialPegCounterText = "Pegs on Board: "; // Store the initial text
+    const initialPegCounterText = "Pegs on Board: ";
 
     function checkForWin() {
       const emptyHolesRemaining = document.querySelectorAll('.hole').length;
       if (emptyHolesRemaining === 0) {
-        // Win condition met
         pegCounterDisplay.textContent = `You finished the board using ${pegCount} pegs!`;
         pegCounterDisplay.style.color = 'green';
-        console.log('You Win!');
-        // Optionally, you could disable further interactions here
       } else {
-        // Win condition not met (or no longer met)
         pegCounterDisplay.textContent = initialPegCounterText + pegCount;
-        pegCounterDisplay.style.color = ''; // Revert to default color
+        pegCounterDisplay.style.color = '';
       }
     }
-
 
     // Set up the CSS Grid layout
     boardContainer.style.gridTemplateColumns = `repeat(${numCols}, ${45}px)`;
@@ -187,191 +180,128 @@
           if (isBlankHole) {
             grid[r][c].classList.add('blank-hole');
           } else {
-            grid[r][c].classList.add('hole'); // These are the valid holes for pegs (initially empty)
+            grid[r][c].classList.add('hole');
           }
         }
       }
-      pegCount = 0; // Initialize peg count to zero
+      pegCount = 0;
       updatePegCount();
     }
-    
-
     initializeBoard();
 
     let activePeg = null;
-    const pegFillMap = new Map(); // Map to store filled holes associated with a peg
+    const pegFillMap = new Map();
 
+    // --- NEW: updateBoard function ---
+    function updateBoard() {
+      // Clear all filled holes
+      for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+          const cell = grid[r][c];
+          if (cell.classList.contains('filled-hole')) {
+            cell.classList.remove('filled-hole');
+            cell.classList.add('hole');
+          }
+        }
+      }
+      // Re-apply twists for all pegs
+      document.querySelectorAll('.cell.peg').forEach(peg => {
+        const row = parseInt(peg.dataset.row);
+        const col = parseInt(peg.dataset.col);
 
-    
+        if (peg.classList.contains('twisted-left')) {
+          const adjacentOffsets = [
+            { dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 },
+            { dr: -1, dc: -1 }, { dr: -1, dc: 1 }, { dr: 1, dc: -1 }, { dr: 1, dc: 1 }
+          ];
+          adjacentOffsets.forEach(offset => {
+            const adjRow = row + offset.dr;
+            const adjCol = col + offset.dc;
+            if (adjRow >= 0 && adjRow < numRows && adjCol >= 0 && adjCol < numCols) {
+              const adjacentCell = grid[adjRow][adjCol];
+              if (adjacentCell.classList.contains('hole')) {
+                adjacentCell.classList.remove('hole');
+                adjacentCell.classList.add('filled-hole');
+              }
+            }
+          });
+        }
 
+        if (peg.classList.contains('twisted-right')) {
+          const directions = [
+            { dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }
+          ];
+          directions.forEach(dir => {
+            let currentRow = row + dir.dr;
+            let currentCol = col + dir.dc;
+            while (currentRow >= 0 && currentRow < numRows && currentCol >= 0 && currentCol < numCols) {
+              const currentCell = grid[currentRow][currentCol];
+              if (currentCell.classList.contains('hole')) {
+                currentCell.classList.remove('hole');
+                currentCell.classList.add('filled-hole');
+              } else if (currentCell.classList.contains('blank-hole')) {
+                break;
+              }
+              currentRow += dir.dr;
+              currentCol += dir.dc;
+            }
+          });
+        }
+      });
+    }
+    // --- END updateBoard ---
 
     boardContainer.addEventListener('click', function(event) {
-      const clickedCell = event.target;
-      if (clickedCell.classList.contains('cell')) {
-        if (clickedCell.classList.contains('peg')) {
-          // Click on a peg
-          if (activePeg === clickedCell) {
-            // Click on the currently active peg: remove it and revert filled holes
-            const filledByThisPeg = pegFillMap.get(activePeg);
-            if (filledByThisPeg) {
-              filledByThisPeg.forEach(filledCell => {
-                filledCell.classList.remove('filled-hole');
-                filledCell.classList.add('hole');
-                console.log('Reverted filled hole at row:', filledCell.dataset.row, 'col:', filledCell.dataset.col);
-              });
-              pegFillMap.delete(activePeg);
-            }
-            clickedCell.classList.remove('peg');
-            clickedCell.classList.add('hole');
-            activePeg.classList.remove('active-peg');
-            activePeg = null;
-            pegCount--; // Decrement peg count on removal
-            updatePegCount();
-            checkForWin(); // Add this line
-            console.log('Peg removed from row:', clickedCell.dataset.row, 'col:', clickedCell.dataset.col);
-          } else {
-            // Click on an inactive peg: make it active
-            if (activePeg) {
-              activePeg.classList.remove('active-peg');
-            }
-            activePeg = clickedCell;
-            activePeg.classList.add('active-peg');
-            console.log('Active peg selected at row:', clickedCell.dataset.row, 'col:', clickedCell.dataset.col);
-          }
-        } else if (clickedCell.classList.contains('hole')) {
-          // Click on an empty hole: place a new peg and make it active
-          clickedCell.classList.add('peg');
-          clickedCell.classList.remove('hole');
-          clickedCell.classList.remove('twisted-left'); // Ensure no left twist state
-          clickedCell.classList.remove('twisted-right'); // Ensure no right twist state
-          if (activePeg) {
-            activePeg.classList.remove('active-peg');
-          }
-          activePeg = clickedCell;
-          activePeg.classList.add('active-peg');
-          pegCount++; // Increment peg count on placement
-          updatePegCount();
-          checkForWin(); // Add this line
-          console.log('Peg placed and activated at row:', clickedCell.dataset.row, 'col:', clickedCell.dataset.col);
-        }
-        // Clicks on blank holes do nothing
-      }
-    });
-
-   leftButton.addEventListener('click', function() {
-      if (activePeg) {
-        // Clear any previous twist state and filled holes
-        activePeg.classList.remove('twisted-right');
-        const previouslyFilled = pegFillMap.get(activePeg);
-        if (previouslyFilled) {
-          previouslyFilled.forEach(filledCell => {
-            filledCell.classList.remove('filled-hole');
-            filledCell.classList.add('hole');
-            console.log('Reverted previously filled hole at row:', filledCell.dataset.row, 'col:', filledCell.dataset.col);
-          });
-          pegFillMap.delete(activePeg);
-        }
-
-        const row = parseInt(activePeg.dataset.row);
-        const col = parseInt(activePeg.dataset.col);
-        console.log(`Twisting peg left (8 directions) at row: ${row}, col: ${col}`);
-
-        const adjacentOffsets = [
-          { dr: -1, dc: 0 },  // Up
-          { dr: 1, dc: 0 },   // Down
-          { dr: 0, dc: -1 },  // Left
-          { dr: 0, dc: 1 },   // Right
-          { dr: -1, dc: -1 }, // Top-Left
-          { dr: -1, dc: 1 },  // Top-Right
-          { dr: 1, dc: -1 },  // Bottom-Left
-          { dr: 1, dc: 1 }    // Bottom-Right
-        ];
-
-        const filledHolesByThisTwist = [];
-
-        adjacentOffsets.forEach(offset => {
-          const adjRow = row + offset.dr;
-          const adjCol = col + offset.dc;
-
-          if (adjRow >= 0 && adjRow < numRows && adjCol >= 0 && adjCol < numCols) {
-            const adjacentCell = grid[adjRow][adjCol];
-            if (adjacentCell.classList.contains('hole')) {
-              adjacentCell.classList.remove('hole');
-              adjacentCell.classList.add('filled-hole');
-              filledHolesByThisTwist.push(adjacentCell);
-              console.log(`Filled hole at row: ${adjRow}, col: ${adjCol}`);
-            }
-          }
-        });
-
-        // Associate the newly filled holes and mark as twisted left
-        pegFillMap.set(activePeg, filledHolesByThisTwist);
-        activePeg.classList.add('twisted-left');
-        checkForWin(); // Check for win after the twist
-
-        console.log('Peg twisted left (green dot, 8 directions), remains active.');
-
+  const clickedCell = event.target;
+  if (clickedCell.classList.contains('cell')) {
+    if (clickedCell.classList.contains('peg')) {
+      if (activePeg === clickedCell) {
+        // Remove peg
+        clickedCell.classList.remove('peg', 'twisted-left', 'twisted-right', 'active-peg');
+        clickedCell.classList.add('hole');
+        pegFillMap.delete(activePeg);
+        activePeg = null;
+        pegCount--;
+        updatePegCount();
+        updateBoard();
+        checkForWin();
       } else {
-        console.log('No active peg to twist left.');
+        if (activePeg) activePeg.classList.remove('active-peg');
+        activePeg = clickedCell;
+        activePeg.classList.add('active-peg');
+      }
+    } else if (
+      clickedCell.classList.contains('hole') ||
+      clickedCell.classList.contains('filled-hole') // <-- Allow peg placement on filled holes
+    ) {
+      clickedCell.classList.add('peg');
+      clickedCell.classList.remove('hole', 'filled-hole', 'twisted-left', 'twisted-right');
+      if (activePeg) activePeg.classList.remove('active-peg');
+      activePeg = clickedCell;
+      activePeg.classList.add('active-peg');
+      pegCount++;
+      updatePegCount();
+      updateBoard();
+      checkForWin();
+    }
+  }
+});
+
+    leftButton.addEventListener('click', function() {
+      if (activePeg) {
+        activePeg.classList.remove('twisted-right');
+        activePeg.classList.add('twisted-left');
+        updateBoard(); // <-- KEY: update the board after twist
+        checkForWin();
       }
     });
 
     rightButton.addEventListener('click', function() {
       if (activePeg) {
-        // Clear any previous twist state and filled holes
         activePeg.classList.remove('twisted-left');
-        const previouslyFilled = pegFillMap.get(activePeg);
-        if (previouslyFilled) {
-          previouslyFilled.forEach(filledCell => {
-            filledCell.classList.remove('filled-hole');
-            filledCell.classList.add('hole');
-            console.log('Reverted previously filled hole at row:', filledCell.dataset.row, 'col:', filledCell.dataset.col);
-          });
-          pegFillMap.delete(activePeg);
-        }
-
-        const startRow = parseInt(activePeg.dataset.row);
-        const startCol = parseInt(activePeg.dataset.col);
-        console.log(`Filling row and column from peg at row: ${startRow}, col: ${startCol}`);
-
-        const directions = [
-          { dr: -1, dc: 0 }, // Up
-          { dr: 1, dc: 0 },  // Down
-          { dr: 0, dc: -1 }, // Left
-          { dr: 0, dc: 1 }   // Right
-        ];
-
-        const filledHolesByThisPeg = [];
-
-        directions.forEach(dir => {
-          let currentRow = startRow + dir.dr;
-          let currentCol = startCol + dir.dc;
-
-          while (currentRow >= 0 && currentRow < numRows && currentCol >= 0 && currentCol < numCols) {
-            const currentCell = grid[currentRow][currentCol];
-
-            if (currentCell.classList.contains('hole')) {
-              currentCell.classList.remove('hole');
-              currentCell.classList.add('filled-hole');
-              filledHolesByThisPeg.push(currentCell);
-              console.log(`Filled hole at row: ${currentRow}, col: ${currentCol}`);
-            } else if (currentCell.classList.contains('blank-hole')) {
-              break; // Stop filling in this direction
-            }
-
-            currentRow += dir.dr;
-            currentCol += dir.dc;
-          }
-        });
-
-        // Associate the newly filled holes and mark as twisted right
-        pegFillMap.set(activePeg, filledHolesByThisPeg);
         activePeg.classList.add('twisted-right');
-        checkForWin(); // Add this line
-        console.log('Row and column fill complete (red dot), active peg remains.');
-
-      } else {
-        console.log('No active peg for right button action.');
+        updateBoard(); // <-- KEY: update the board after twist
+        checkForWin();
       }
     });
   </script>
